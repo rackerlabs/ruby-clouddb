@@ -1,4 +1,4 @@
-module CloudLB
+module CloudDB
   class Authentication
     
     # Performs an authentication to the Rackspace Cloud authorization servers.  Opens a new HTTP connection to the API server,
@@ -13,8 +13,8 @@ module CloudLB
         :headers                       => { "X-Auth-User" => connection.authuser, "X-Auth-Key" => connection.authkey },
         :user_agent                    => "Cloud Databases Ruby API #{VERSION}",
         :verbose                       => ENV['DATABASES_VERBOSE'] ? true : false)
-      CloudLB.hydra.queue(request)
-      CloudLB.hydra.run
+      CloudDB.hydra.queue(request)
+      CloudDB.hydra.run
       response = request.response
       headers = response.headers_hash
       if (response.code.to_s == "204")
@@ -30,7 +30,7 @@ module CloudLB
         connection.authok = true
       else
         connection.authtoken = false
-        raise CloudLB::Exception::Authentication, "Authentication failed with response code #{response.code}"
+        raise CloudDB::Exception::Authentication, "Authentication failed with response code #{response.code}"
       end
     end
   end
