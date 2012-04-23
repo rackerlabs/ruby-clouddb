@@ -37,6 +37,7 @@ module CloudDB
   require 'clouddb/authentication'
   require 'clouddb/connection'
   require 'clouddb/instance'
+  require 'clouddb/flavor'
 
   # Helper method to recursively symbolize hash keys.
   def self.symbolize_keys(obj)

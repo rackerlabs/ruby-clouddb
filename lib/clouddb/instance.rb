@@ -58,7 +58,27 @@ module CloudDB
       CloudDB.symbolize_keys(JSON.parse(response.body)["users"])
     end
     alias :users :list_users
-      
+
+    # Creates a brand new user and associates it with the current instance. Returns the new User object.
+    #
+    # Options include:
+    # * :address - The IP address of the backend node *required*
+    # * :port - The TCP port that the backend node listens on. *required*
+    # * :condition - Can be "ENABLED" (default), "DISABLED", or "DRAINING"
+    # * :weight - A weighting for the WEIGHTED_ balancing algorithms. Defaults to 1.
+    def create_user(options={})
+      body = Hash.new
+      body[:name] = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name to create a user"
+      (raise CloudDB::Exception::Syntax, "User name must be 16 characters or less") if options[:name].size > 16
+      body[:password] = options[:password] or raise CloudDB::Exception::MissingArgument, "Must provide a password to create a user"
+      (raise CloudDB::Exception::Syntax, "Must provide at least one database in the :databases array") if (!options[:databases].is_a?(Array) || options[:databases].size < 1)
+
+      response = @connection.lbreq("POST", @lbmgmthost, "#{@lbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users",@lbmgmtport,@lbmgmtscheme,{},body)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      body = JSON.parse(response.body)['users'][0]
+      return list_users
+    end
+
     # Deletes the current instance object.  Returns true if successful, raises an exception otherwise.
     def destroy!
       response = @connection.dbreq("DELETE", @lbmgmthost, "#{@lbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}",@lbmgmtport,@lbmgmtscheme)

@@ -90,6 +90,30 @@ module CloudDB
       return get_instance(body["id"])
     end
 
+    # Returns the list of available database flavors.
+    #
+    # Information returned includes:
+    #   * :id - The numeric ID of this flavor
+    #   * :name - The name of the flavor
+    #   * :links - Useful information regarding the flavor
+    def list_flavors()
+      response = dbreq("GET",lbmgmthost,"#{lbmgmtpath}/flavors",lbmgmtport,lbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      flavors = CloudDB.symbolize_keys(JSON.parse(response.body)["flavors"])
+      return flavors
+    end
+    alias :flavors :list_flavors
+
+    # Returns a CloudDB::Flavor object for the given flavor ID number.
+    #
+    #    >> db.get_flavor(3)
+    def get_flavor(id)
+      CloudDB::Flavor.new(self,id)
+    end
+    alias :flavor :get_flavor
+
+
+
     # This method actually makes the HTTP REST calls out to the server. Relies on the thread-safe typhoeus
     # gem to do the heavy lifting.  Never called directly.
     def dbreq(method,server,path,port,scheme,headers = {},data = nil,attempts = 0) # :nodoc:
