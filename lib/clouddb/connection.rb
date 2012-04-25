@@ -1,17 +1,17 @@
 module CloudDB
   class Connection
-    
+
     attr_reader   :authuser
     attr_reader   :authkey
     attr_accessor :authtoken
     attr_accessor :authok
-    attr_accessor :lbmgmthost
-    attr_accessor :lbmgmtpath
-    attr_accessor :lbmgmtport
-    attr_accessor :lbmgmtscheme
+    attr_accessor :dbmgmthost
+    attr_accessor :dbmgmtpath
+    attr_accessor :dbmgmtport
+    attr_accessor :dbmgmtscheme
     attr_reader   :auth_url
     attr_reader   :region
-    
+
     # Creates a new CloudDB::Connection object.  Uses CloudDB::Authentication to perform the login for the connection.
     #
     # Setting the retry_auth option to false will cause an exception to be thrown if your authorization token expires.
@@ -29,7 +29,7 @@ module CloudDB
     #   :retry_auth - Whether to retry if your auth token expires (defaults to true)
     #
     #   db = CloudDB::Connection.new(:username => 'YOUR_USERNAME', :api_key => 'YOUR_API_KEY', :region => :dfw)
-    def initialize(options = {:retry_auth => true}) 
+    def initialize(options = {:retry_auth => true})
       @authuser = options[:username] || (raise CloudDB::Exception::Authentication, "Must supply a :username")
       @authkey = options[:api_key] || (raise CloudDB::Exception::Authentication, "Must supply an :api_key")
       @region = options[:region] || (raise CloudDB::Exception::Authentication, "Must supply a :region")
@@ -40,29 +40,48 @@ module CloudDB
       @http = {}
       CloudDB::Authentication.new(self)
     end
-    
+
     # Returns true if the authentication was successful and returns false otherwise.
     #
-    #   lb.authok?
+    #   db.authok?
     #   => true
     def authok?
       @authok
     end
-    
+
     # Returns the list of available database instances.
     #
     # Information returned includes:
-    #   * :id - The numeric ID of this instance
-    #   * :name - The name of the instance
-    #   * :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED)
+    #   * :id - The numeric ID of the instance.
+    #   * :name - The name of the instance.
+    #   * :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED).
     def list_instances()
-      response = dbreq("GET",lbmgmthost,"#{lbmgmtpath}/instances",lbmgmtport,lbmgmtscheme)
+      response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/instances", dbmgmtport, dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       instances = CloudDB.symbolize_keys(JSON.parse(response.body)["instances"])
       return instances
     end
     alias :instances :list_instances
-    
+
+    # Returns the list of available database instances with detail.
+    #
+    # Information returned includes:
+    #   * :id - The numeric ID of the instance.
+    #   * :name - The name of the instance.
+    #   * :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED).
+    #   * :hostname - A DNS-resolvable hostname associated with the database instance.
+    #   * :flavor - The flavor of the instance.
+    #   * :volume - The volume size of the instance.
+    #   * :created - The time when the instance was created.
+    #   * :updated - The time when the instance was last updated.
+    def list_instances_detail()
+      response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/instances/detail", dbmgmtport, dbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      instances = CloudDB.symbolize_keys(JSON.parse(response.body)["instances"])
+      return instances
+    end
+    alias :instances_detail :list_instances_detail
+
     # Returns a CloudDB::Instance object for the given instance ID number.
     #
     #    >> db.get_instance(692d8418-7a8f-47f1-8060-59846c6e024f)
@@ -70,21 +89,26 @@ module CloudDB
       CloudDB::Instance.new(self,id)
     end
     alias :instance :get_instance
-    
+
     # Creates a brand new database instance under your account.
     #
-    # A minimal request must pass in :flavor_ref and :size
-    #
     # Options:
-    # :flavor_ref - reference (href) to a flavor as specified in the response from the List Flavors API call.
-    # :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10.
-    # :name - the name of the database instance.  Limited to 128 characters or less.
+    # :flavor_ref - reference (href) to a flavor as specified in the response from the List Flavors API call. *required*
+    # :name - the name of the database instance.  Limited to 128 characters or less. *required*
+    # :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
+    # :databases - the databases to be created for the instance.
+    # :users - the users to be created for the instance.
     def create_instance(options = {})
       body = Hash.new
-      (body[:flavor_ref] = options[:flavor_ref]) or raise CloudDB::Exception::MissingArgument, "Must provide a flavor to create an instance"
-      (body[:size] = options[:size]) or raise CloudDB::Exception::MissingArgument, "Must provide a size to create an instance"
-      body[:name].upcase! if body[:name]
-      response = dbreq("POST",lbmgmthost,"#{lbmgmtpath}/instances",lbmgmtport,lbmgmtscheme,{},body.to_json)
+      body[:instance] = Hash.new
+      body[:instance][:flavorRef]  = options[:flavor_ref] or raise CloudDB::Exception::MissingArgument, "Must provide a flavor to create an instance"
+      body[:instance][:name]       = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name to create an instance"
+      body[:instance][:volume]     = options[:volume] or raise CloudDB::Exception::MissingArgument, "Must provide a size to create an instance"
+      body[:instance][:databases]  = options[:databases] if options[:databases]
+      body[:instance][:users]      = options[:users] if options[:users]
+      (raise CloudDB::Exception::Syntax, "Instance name must be 128 characters or less") if options[:name].size > 128
+
+      response = dbreq("POST", dbmgmthost, "#{dbmgmtpath}/instances", dbmgmtport, dbmgmtscheme, {}, body.to_json)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       body = JSON.parse(response.body)['instance']
       return get_instance(body["id"])
@@ -97,7 +121,7 @@ module CloudDB
     #   * :name - The name of the flavor
     #   * :links - Useful information regarding the flavor
     def list_flavors()
-      response = dbreq("GET",lbmgmthost,"#{lbmgmtpath}/flavors",lbmgmtport,lbmgmtscheme)
+      response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/flavors", dbmgmtport, dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       flavors = CloudDB.symbolize_keys(JSON.parse(response.body)["flavors"])
       return flavors
@@ -112,11 +136,9 @@ module CloudDB
     end
     alias :flavor :get_flavor
 
-
-
     # This method actually makes the HTTP REST calls out to the server. Relies on the thread-safe typhoeus
     # gem to do the heavy lifting.  Never called directly.
-    def dbreq(method,server,path,port,scheme,headers = {},data = nil,attempts = 0) # :nodoc:
+    def dbreq(method, server, path, port, scheme, headers = {}, data = nil, attempts = 0) # :nodoc:
       if data
         unless data.is_a?(IO)
           headers['Content-Length'] = data.respond_to?(:lstat) ? data.stat.size : data.size
@@ -135,7 +157,7 @@ module CloudDB
                                       :verbose       => ENV['DATABASES_VERBOSE'] ? true : false)
       CloudDB.hydra.queue(request)
       CloudDB.hydra.run
-      
+
       response = request.response
       print "DEBUG: Body is #{response.body}\n" if ENV['DATABASES_VERBOSE']
       raise CloudDB::Exception::ExpiredAuthToken if response.code.to_s == "401"
@@ -152,10 +174,10 @@ module CloudDB
       CloudDB::Authentication.new(self)
       retry
     end
-    
-    
+
+
     private
-    
+
     # Sets up standard HTTP headers
     def headerprep(headers = {}) # :nodoc:
       default_headers = {}
@@ -165,7 +187,7 @@ module CloudDB
       default_headers["Accept"] = "application/json"
       default_headers["Content-Type"] = "application/json"
       default_headers.merge(headers)
-    end    
-        
+    end
+
   end
 end
