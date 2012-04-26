@@ -98,6 +98,18 @@ module CloudDB
     # :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
     # :databases - the databases to be created for the instance.
     # :users - the users to be created for the instance.
+    #
+    # Example:
+    # test_instance = connection.create_instance(:flavor_ref => "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1",
+    #                                            :name => "test_instance",
+    #                                            :volume => {:size => "1"},
+    #                                            :databases => [{:name => "testdb"}],
+    #                                            :users => [{:name => "test",
+    #                                                        :password => "test",
+    #                                                        :databases => [{:name => "testdb"}]}
+    #                                                      ]
+    #                                           )
+
     def create_instance(options = {})
       body = Hash.new
       body[:instance] = Hash.new
@@ -153,7 +165,6 @@ module CloudDB
                                       :body          => data,
                                       :method        => method.downcase.to_sym,
                                       :headers       => hdrhash,
-                                      :user_agent    => "Cloud Databases Ruby API #{VERSION}",
                                       :verbose       => ENV['DATABASES_VERBOSE'] ? true : false)
       CloudDB.hydra.queue(request)
       CloudDB.hydra.run
@@ -186,6 +197,7 @@ module CloudDB
       default_headers["Connection"] = "Keep-Alive"
       default_headers["Accept"] = "application/json"
       default_headers["Content-Type"] = "application/json"
+      default_headers["User-Agent"] = "Cloud Databases Ruby API #{VERSION}"
       default_headers.merge(headers)
     end
 

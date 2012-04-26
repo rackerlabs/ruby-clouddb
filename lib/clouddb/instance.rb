@@ -1,15 +1,20 @@
 module CloudDB
   class Instance
     
+    attr_reader :connection
+
     attr_reader :id
     attr_reader :name
     attr_reader :hostname
-    attr_reader :created
-    attr_reader :udpated
     attr_reader :flavor_id
+    attr_reader :root_enabled
+    attr_reader :volume_used
     attr_reader :volume_size
     attr_reader :status
-    
+    attr_reader :created
+    attr_reader :updated
+    attr_reader :links
+
     # Creates a new CloudDB::Instance object representing a Database instance.
     def initialize(connection,id)
       @connection    = connection
@@ -27,14 +32,17 @@ module CloudDB
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}", @dbmgmtport, @dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       data = JSON.parse(response.body)['instance']
-      @id          = data["id"]
-      @name        = data["name"]
-      @hostname    = data["hostname"]
-      @created     = data["created"]
-      @updated     = data["updated"]
-      @flavor_id   = data["flavor"]["id"]
-      @volume_size = data["volume"]["size"]
-      @status      = data["status"]
+      @id           = data["id"]
+      @name         = data["name"]
+      @hostname     = data["hostname"]
+      @flavor_id    = data["flavor"]["id"] if data["flavor"]
+      @root_enabled = data["rootEnabled"]
+      @volume_used  = data["volume"]["used"] if data["volume"]
+      @volume_size  = data["volume"]["size"] if data["volume"]
+      @status       = data["status"]
+      @created      = data["created"]
+      @updated      = data["updated"]
+      @links        = data["links"]
       true
     end
     alias :refresh :populate
@@ -45,6 +53,7 @@ module CloudDB
     def enable_root()
       response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/root", @dbmgmtport, @dbmgmtscheme, {})
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      @root_enabled = true
       body = JSON.parse(response.body)['user']
       return body
     end
@@ -55,8 +64,8 @@ module CloudDB
     def root_enabled?()
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/root", @dbmgmtport, @dbmgmtscheme, {})
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
-      is_enabled = JSON.parse(response.body)['rootEnabled']
-      return is_enabled
+      @root_enabled = JSON.parse(response.body)['rootEnabled']
+      return @root_enabled
     end
 
     # Lists the databases associated with this Instance
@@ -88,7 +97,7 @@ module CloudDB
       body[:collate]        = options[:collate] || 'utf8_general_ci'
       (raise CloudDB::Exception::Syntax, "Database name must be 64 characters or less") if options[:name].size > 64
 
-      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme, {}, body)
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       true
     end
@@ -117,15 +126,22 @@ module CloudDB
     # :databases - An array of databases with at least one database. *required*
     def create_user(options={})
       body = Hash.new
-      body[:name]       = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name for the user"
-      body[:password]   = options[:password] or raise CloudDB::Exception::MissingArgument, "Must provide a password for the user"
-      body[:databases]  = options[:databases]
+      body[:users] = Array.new
+
+      user = Hash.new
+      user[:name]       = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name for the user"
+      user[:password]   = options[:password] or raise CloudDB::Exception::MissingArgument, "Must provide a password for the user"
+      user[:databases]  = options[:databases]
       (raise CloudLB::Exception::Syntax, "Must provide at least one database in the :databases array") if (!options[:databases].is_a?(Array) || options[:databases].size < 1)
 
-      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme, {}, body)
+      body[:users] << user
+
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       true
     end
+
+    # TODO: Implement create_users call
 
     # Deletes the current instance object.  Returns true if successful, raises an exception otherwise.
     def destroy!

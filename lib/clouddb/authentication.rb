@@ -10,8 +10,7 @@ module CloudDB
     def initialize(connection)
       request = Typhoeus::Request.new(connection.auth_url,
         :method                        => :get,
-        :headers                       => { "X-Auth-User" => connection.authuser, "X-Auth-Key" => connection.authkey },
-        :user_agent                    => "Cloud Databases Ruby API #{VERSION}",
+        :headers                       => { "X-Auth-User" => connection.authuser, "X-Auth-Key" => connection.authkey, "User-Agent" => "Cloud Databases Ruby API #{VERSION}" },
         :verbose                       => ENV['DATABASES_VERBOSE'] ? true : false)
       CloudDB.hydra.queue(request)
       CloudDB.hydra.run
