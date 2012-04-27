@@ -113,6 +113,7 @@ module CloudDB
     def create_instance(options = {})
       body = Hash.new
       body[:instance] = Hash.new
+
       body[:instance][:flavorRef]  = options[:flavor_ref] or raise CloudDB::Exception::MissingArgument, "Must provide a flavor to create an instance"
       body[:instance][:name]       = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name to create an instance"
       body[:instance][:volume]     = options[:volume] or raise CloudDB::Exception::MissingArgument, "Must provide a size to create an instance"
@@ -139,6 +140,22 @@ module CloudDB
       return flavors
     end
     alias :flavors :list_flavors
+
+    # Returns the list of available database flavors in detail.
+    #
+    # Information returned includes:
+    #   * :id - The numeric ID of this flavor
+    #   * :name - The name of the flavor
+    #   * :vcpus - The amount of virtual cpu power
+    #   * :ram - The available memory in MB
+    #   * :links - Useful information regarding the flavor
+    def list_flavors_detail()
+      response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/flavors/detail", dbmgmtport, dbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      flavors = CloudDB.symbolize_keys(JSON.parse(response.body)["flavors"])
+      return flavors
+    end
+    alias :flavors_detail :list_flavors_detail
 
     # Returns a CloudDB::Flavor object for the given flavor ID number.
     #

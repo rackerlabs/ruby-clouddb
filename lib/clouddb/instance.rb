@@ -47,6 +47,118 @@ module CloudDB
     end
     alias :refresh :populate
 
+    # Lists the databases associated with this Instance
+    #
+    #    >> i.list_databases
+    def list_databases
+      response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      CloudDB.symbolize_keys(JSON.parse(response.body)["databases"])
+    end
+    alias :databases :list_databases
+
+    # Returns a CloudDB::Database object for the given database name.
+    def get_database(name)
+      CloudDB::Database.new(self, name)
+    end
+    alias :database :get_database
+
+    # Creates brand new databases and associates them with the current Instance. Returns true if successful.
+    #
+    # Options for each database in the array:
+    # :name - Specifies the database name for creating the database. *required*
+    # :character_set - Set of symbols and encodings. The default character set is utf8.
+    # :collate - Set of rules for comparing characters in a character set. The default value for collate is utf8_general_ci.
+    def create_databases(databases)
+      (raise CloudDB::Exception::Syntax, "Must provide at least one database in the array") if (!databases.is_a?(Array) || databases.size < 1)
+
+      body = Hash.new
+      body[:databases] = Array.new
+
+      for database in databases
+        new_database = Hash.new
+        new_database[:name]          = database[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name for each database"
+        new_database[:character_set] = database[:character_set] || 'utf8'
+        new_database[:collate]       = database[:collate] || 'utf8_general_ci'
+        (raise CloudDB::Exception::Syntax, "Database names must be 64 characters or less") if database[:name].size > 64
+
+        body[:databases] << new_database
+      end
+
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      true
+    end
+
+    # Creates a brand new database and associates it with the current Instance. Returns true if successful.
+    #
+    # Options:
+    # :name - Specifies the database name for creating the database. *required*
+    # :character_set - Set of symbols and encodings. The default character set is utf8.
+    # :collate - Set of rules for comparing characters in a character set. The default value for collate is utf8_general_ci.
+    def create_database(options={})
+      new_databases = Array.new
+      new_databases << options
+      create_databases new_databases
+    end
+
+    # Lists the users associated with the current Instance
+    #
+    #    >> i.list_users
+    def list_users
+      response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      CloudDB.symbolize_keys(JSON.parse(response.body)["users"])
+    end
+    alias :users :list_users
+
+    # Returns a CloudDB::User object for the given user name.
+    def get_user(name)
+      CloudDB::User.new(self, name)
+    end
+    alias :user :get_user
+
+    # Creates brand new users and associates them with the current Instance. Returns true if successful.
+    #
+    # Options for each user in the array:
+    # :name - Name of the user for the database(s). *required*
+    # :password - User password for database access. *required*
+    # :databases - An array of databases with at least one database. *required*
+    def create_users(users)
+      (raise CloudDB::Exception::Syntax, "Must provide at least one user in the array") if (!users.is_a?(Array) || users.size < 1)
+
+      body = Hash.new
+      body[:users] = Array.new
+
+      for user in users
+        new_user = Hash.new
+        new_user[:name]      = user[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name for each user"
+        new_user[:password]  = user[:password] or raise CloudDB::Exception::MissingArgument, "Must provide a password for each user"
+        new_user[:databases] = user[:databases]
+        (raise CloudDB::Exception::Syntax, "User names must be 16 characters or less") if user[:name].size > 16
+        (raise CloudDB::Exception::Syntax, "Must provide at least one database in each user :databases array") if (!user[:databases].is_a?(Array) || user[:databases].size < 1)
+
+        body[:users] << new_user
+      end
+
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      true
+    end
+
+    # Creates a brand new user and associates it with the current Instance. Returns true if successful.
+    #
+    # Options:
+    # :name - Name of the user for the database(s). *required*
+    # :password - User password for database access. *required*
+    # :databases - An array of databases with at least one database. *required*
+    def create_user(options={})
+      new_users = Array.new
+      new_users << options
+      create_users new_users
+    end
+
+
     # Enables the root user for the specified database instance and returns the root password.
     #
     #    >> i.enable_root
@@ -68,80 +180,39 @@ module CloudDB
       return @root_enabled
     end
 
-    # Lists the databases associated with this Instance
-    #
-    #    >> i.list_databases
-    def list_databases
-      response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme)
-      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
-      CloudDB.symbolize_keys(JSON.parse(response.body)["databases"])
-    end
-    alias :databases :list_databases
-
-    # Returns a CloudDB::Database object for the given database name.
-    def get_database(name)
-      CloudDB::Database.new(self, name)
-    end
-    alias :database :get_database
-
-    # Creates a brand new database and associates it with the current Instance.
+    # Resize the memory of the instance.
     #
     # Options:
-    # :name - Specifies the database name for creating the database. *required*
-    # :character_set - Set of symbols and encodings. The default character set is utf8.
-    # :collate - Set of rules for comparing characters in a character set. The default value for collate is utf8_general_ci.
-    def create_database(options={})
+    # :flavor_ref - reference (href) to a flavor as specified in the response from the List Flavors API call. *required*
+    def resize(options={})
       body = Hash.new
-      body[:name]           = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name to create a database"
-      body[:character_set]  = options[:character_set] || 'utf8'
-      body[:collate]        = options[:collate] || 'utf8_general_ci'
-      (raise CloudDB::Exception::Syntax, "Database name must be 64 characters or less") if options[:name].size > 64
+      body[:resize] = Hash.new
 
-      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
+      body[:resize][:flavorRef]  = options[:flavor_ref] or raise CloudDB::Exception::MissingArgument, "Must provide a flavor to create an instance"
+
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/action", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       true
     end
 
-    # Lists the users associated with this Instance
-    #
-    #    >> i.list_users
-    def list_users
-      response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme)
-      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
-      CloudDB.symbolize_keys(JSON.parse(response.body)["users"])
-    end
-    alias :users :list_users
-
-    # Returns a CloudDB::User object for the given user name.
-    def get_user(name)
-      CloudDB::User.new(self, name)
-    end
-    alias :user :get_user
-
-    # Creates a brand new user and associates it with the current instance. Returns the new User object.
+    # Resize the volume of the instance.
     #
     # Options:
-    # :name - Name of the user for the database(s). *required*
-    # :password - User password for database access. *required*
-    # :databases - An array of databases with at least one database. *required*
-    def create_user(options={})
+    # :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
+    def resize_volume(options={})
       body = Hash.new
-      body[:users] = Array.new
+      body[:resize] = Hash.new
+      volume = Hash.new
+      body[:resize][:volume] = volume
 
-      user = Hash.new
-      user[:name]       = options[:name] or raise CloudDB::Exception::MissingArgument, "Must provide a name for the user"
-      user[:password]   = options[:password] or raise CloudDB::Exception::MissingArgument, "Must provide a password for the user"
-      user[:databases]  = options[:databases]
-      (raise CloudLB::Exception::Syntax, "Must provide at least one database in the :databases array") if (!options[:databases].is_a?(Array) || options[:databases].size < 1)
+      volume[:size] = options[:size] or raise CloudDB::Exception::MissingArgument, "Must provide a volume size"
+      (raise CloudDB::Exception::Syntax, "Volume size must be a value between 1 and 10") if !options[:size].is_a?(Integer) || options[:size] < 1 || options[:size] > 10
 
-      body[:users] << user
-
-      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/action", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
       true
     end
 
-    # TODO: Implement create_users call
 
     # Deletes the current instance object.  Returns true if successful, raises an exception otherwise.
     def destroy!
