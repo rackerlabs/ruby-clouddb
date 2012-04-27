@@ -1,6 +1,6 @@
 module CloudDB
   class Instance
-    
+
     attr_reader :connection
 
     attr_reader :id
@@ -26,7 +26,7 @@ module CloudDB
       populate
       self
     end
-    
+
     # Updates the information about the current Instance object by making an API call.
     def populate
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}", @dbmgmtport, @dbmgmtscheme)
