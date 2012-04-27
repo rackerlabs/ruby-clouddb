@@ -26,7 +26,10 @@ Gem::Specification.new do |s|
     "clouddb.gemspec",
     "lib/clouddb.rb",
     "lib/clouddb/authentication.rb",
+    "lib/clouddb/flavor.rb",
     "lib/clouddb/instance.rb",
+    "lib/clouddb/database.rb",
+    "lib/clouddb/user.rb",
     "lib/clouddb/connection.rb",
     "lib/clouddb/exception.rb",
     "lib/clouddb/version.rb"
