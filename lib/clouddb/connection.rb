@@ -15,20 +15,20 @@ module CloudDB
     # Creates a new CloudDB::Connection object.  Uses CloudDB::Authentication to perform the login for the connection.
     #
     # Setting the retry_auth option to false will cause an exception to be thrown if your authorization token expires.
-    # Otherwise, it will attempt to reauthenticate.
+    # Otherwise, it will attempt to re-authenticate.
     #
     # This will likely be the base class for most operations.
     #
     # The constructor takes a hash of options, including:
-    #
     #   :username - Your Rackspace Cloud username *required*
     #   :api_key - Your Rackspace Cloud API key *required*
-    #   :region - The region in which to manage database instances. Current options are :dfw (Rackspace Dallas/Ft. Worth Datacenter),
-    #             :ord (Rackspace Chicago Datacenter) and :lon (Rackspace London Datacenter). *required*
+    #   :region - The region in which to manage database instances. Current options are :dfw (Rackspace Dallas/Ft. Worth
+    #             Datacenter), :ord (Rackspace Chicago Datacenter) and :lon (Rackspace London Datacenter). *required*
     #   :auth_url - The URL to use for authentication.  (defaults to Rackspace USA).
     #   :retry_auth - Whether to retry if your auth token expires (defaults to true)
     #
-    #   db = CloudDB::Connection.new(:username => 'YOUR_USERNAME', :api_key => 'YOUR_API_KEY', :region => :dfw)
+    # Example:
+    #   dbaas = CloudDB::Connection.new(:username => 'YOUR_USERNAME', :api_key => 'YOUR_API_KEY', :region => :dfw)
     def initialize(options = {:retry_auth => true})
       @authuser = options[:username] || (raise CloudDB::Exception::Authentication, "Must supply a :username")
       @authkey = options[:api_key] || (raise CloudDB::Exception::Authentication, "Must supply an :api_key")
@@ -43,7 +43,8 @@ module CloudDB
 
     # Returns true if the authentication was successful and returns false otherwise.
     #
-    #   db.authok?
+    # Example:
+    #   dbaas.authok?
     #   => true
     def authok?
       @authok
@@ -52,9 +53,9 @@ module CloudDB
     # Returns the list of available database instances.
     #
     # Information returned includes:
-    #   * :id - The numeric ID of the instance.
-    #   * :name - The name of the instance.
-    #   * :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED).
+    #   :id - The numeric id of the instance.
+    #   :name - The name of the instance.
+    #   :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED).
     def list_instances()
       response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/instances", dbmgmtport, dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -66,14 +67,14 @@ module CloudDB
     # Returns the list of available database instances with detail.
     #
     # Information returned includes:
-    #   * :id - The numeric ID of the instance.
-    #   * :name - The name of the instance.
-    #   * :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED).
-    #   * :hostname - A DNS-resolvable hostname associated with the database instance.
-    #   * :flavor - The flavor of the instance.
-    #   * :volume - The volume size of the instance.
-    #   * :created - The time when the instance was created.
-    #   * :updated - The time when the instance was last updated.
+    #   :id - The numeric ID of the instance.
+    #   :name - The name of the instance.
+    #   :status - The current state of the instance (BUILD, ACTIVE, BLOCKED, RESIZE, SHUTDOWN, FAILED).
+    #   :hostname - A DNS-resolvable hostname associated with the database instance.
+    #   :flavor - The flavor of the instance.
+    #   :volume - The volume size of the instance.
+    #   :created - The time when the instance was created.
+    #   :updated - The time when the instance was last updated.
     def list_instances_detail()
       response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/instances/detail", dbmgmtport, dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -84,7 +85,8 @@ module CloudDB
 
     # Returns a CloudDB::Instance object for the given instance ID number.
     #
-    #    >> db.get_instance(692d8418-7a8f-47f1-8060-59846c6e024f)
+    # Example:
+    #   dbaas.get_instance(692d8418-7a8f-47f1-8060-59846c6e024f)
     def get_instance(id)
       CloudDB::Instance.new(self,id)
     end
@@ -93,23 +95,22 @@ module CloudDB
     # Creates a brand new database instance under your account.
     #
     # Options:
-    # :flavor_ref - reference (href) to a flavor as specified in the response from the List Flavors API call. *required*
-    # :name - the name of the database instance.  Limited to 128 characters or less. *required*
-    # :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
-    # :databases - the databases to be created for the instance.
-    # :users - the users to be created for the instance.
+    #   :flavor_ref - reference to a flavor as specified in the response from the List Flavors API call. *required*
+    #   :name - the name of the database instance.  Limited to 128 characters or less. *required*
+    #   :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
+    #   :databases - the databases to be created for the instance.
+    #   :users - the users to be created for the instance.
     #
     # Example:
-    # test_instance = connection.create_instance(:flavor_ref => "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1",
-    #                                            :name => "test_instance",
-    #                                            :volume => {:size => "1"},
-    #                                            :databases => [{:name => "testdb"}],
-    #                                            :users => [{:name => "test",
-    #                                                        :password => "test",
-    #                                                        :databases => [{:name => "testdb"}]}
-    #                                                      ]
-    #                                           )
-
+    #   i = dbaas.create_instance(:flavor_ref => "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1",
+    #                             :name => "test_instance",
+    #                             :volume => {:size => "1"},
+    #                             :databases => [{:name => "testdb"}],
+    #                             :users => [{:name => "test",
+    #                                         :password => "test",
+    #                                         :databases => [{:name => "testdb"}]}
+    #                                       ]
+    #                            )
     def create_instance(options = {})
       body = Hash.new
       body[:instance] = Hash.new
@@ -130,9 +131,9 @@ module CloudDB
     # Returns the list of available database flavors.
     #
     # Information returned includes:
-    #   * :id - The numeric ID of this flavor
-    #   * :name - The name of the flavor
-    #   * :links - Useful information regarding the flavor
+    #   :id - The numeric id of this flavor
+    #   :name - The name of the flavor
+    #   :links - Useful information regarding the flavor
     def list_flavors()
       response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/flavors", dbmgmtport, dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -144,11 +145,11 @@ module CloudDB
     # Returns the list of available database flavors in detail.
     #
     # Information returned includes:
-    #   * :id - The numeric ID of this flavor
-    #   * :name - The name of the flavor
-    #   * :vcpus - The amount of virtual cpu power
-    #   * :ram - The available memory in MB
-    #   * :links - Useful information regarding the flavor
+    #   :id - The numeric id of this flavor
+    #   :name - The name of the flavor
+    #   :vcpus - The amount of virtual cpu power
+    #   :ram - The available memory in MB
+    #   :links - Useful information regarding the flavor
     def list_flavors_detail()
       response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/flavors/detail", dbmgmtport, dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -157,9 +158,10 @@ module CloudDB
     end
     alias :flavors_detail :list_flavors_detail
 
-    # Returns a CloudDB::Flavor object for the given flavor ID number.
+    # Returns a CloudDB::Flavor object for the given flavor id number.
     #
-    #    >> db.get_flavor(3)
+    # Example:
+    #   dbaas.get_flavor(3)
     def get_flavor(id)
       CloudDB::Flavor.new(self,id)
     end
@@ -214,7 +216,7 @@ module CloudDB
       default_headers["Connection"] = "Keep-Alive"
       default_headers["Accept"] = "application/json"
       default_headers["Content-Type"] = "application/json"
-      default_headers["User-Agent"] = "Cloud Databases Ruby API #{VERSION}"
+      default_headers["User-Agent"] = "Cloud Databases Ruby API #{CloudDB::VERSION}"
       default_headers.merge(headers)
     end
 

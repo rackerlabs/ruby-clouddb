@@ -15,7 +15,7 @@ module CloudDB
     attr_reader :updated
     attr_reader :links
 
-    # Creates a new CloudDB::Instance object representing a Database instance.
+    # Creates a new CloudDB::Instance object representing a database instance.
     def initialize(connection,id)
       @connection    = connection
       @id            = id
@@ -27,7 +27,7 @@ module CloudDB
       self
     end
 
-    # Updates the information about the current Instance object by making an API call.
+    # Updates the information about the current instance object by making an API call.
     def populate
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}", @dbmgmtport, @dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -47,9 +47,10 @@ module CloudDB
     end
     alias :refresh :populate
 
-    # Lists the databases associated with this Instance
+    # Lists the databases associated with this instance
     #
-    #    >> i.list_databases
+    # Example:
+    #   i.list_databases
     def list_databases
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/databases", @dbmgmtport, @dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -63,12 +64,13 @@ module CloudDB
     end
     alias :database :get_database
 
-    # Creates brand new databases and associates them with the current Instance. Returns true if successful.
+    # Creates brand new databases and associates them with the current instance. Returns true if successful.
     #
     # Options for each database in the array:
-    # :name - Specifies the database name for creating the database. *required*
-    # :character_set - Set of symbols and encodings. The default character set is utf8.
-    # :collate - Set of rules for comparing characters in a character set. The default value for collate is utf8_general_ci.
+    #   :name - Specifies the database name for creating the database. *required*
+    #   :character_set - Set of symbols and encodings. The default character set is utf8.
+    #   :collate - Set of rules for comparing characters in a character set. The default value for collate is
+    #              utf8_general_ci.
     def create_databases(databases)
       (raise CloudDB::Exception::Syntax, "Must provide at least one database in the array") if (!databases.is_a?(Array) || databases.size < 1)
 
@@ -90,12 +92,13 @@ module CloudDB
       true
     end
 
-    # Creates a brand new database and associates it with the current Instance. Returns true if successful.
+    # Creates a brand new database and associates it with the current instance. Returns true if successful.
     #
     # Options:
-    # :name - Specifies the database name for creating the database. *required*
-    # :character_set - Set of symbols and encodings. The default character set is utf8.
-    # :collate - Set of rules for comparing characters in a character set. The default value for collate is utf8_general_ci.
+    #   :name - Specifies the database name for creating the database. *required*
+    #   :character_set - Set of symbols and encodings. The default character set is utf8.
+    #   :collate - Set of rules for comparing characters in a character set. The default value for collate is
+    #              utf8_general_ci.
     def create_database(options={})
       new_databases = Array.new
       new_databases << options
@@ -104,7 +107,8 @@ module CloudDB
 
     # Lists the users associated with the current Instance
     #
-    #    >> i.list_users
+    # Example:
+    #   i.list_users
     def list_users
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/users", @dbmgmtport, @dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -118,12 +122,12 @@ module CloudDB
     end
     alias :user :get_user
 
-    # Creates brand new users and associates them with the current Instance. Returns true if successful.
+    # Creates brand new users and associates them with the current instance. Returns true if successful.
     #
     # Options for each user in the array:
-    # :name - Name of the user for the database(s). *required*
-    # :password - User password for database access. *required*
-    # :databases - An array of databases with at least one database. *required*
+    #   :name - Name of the user for the database(s). *required*
+    #   :password - User password for database access. *required*
+    #   :databases - An array of databases with at least one database. *required*
     def create_users(users)
       (raise CloudDB::Exception::Syntax, "Must provide at least one user in the array") if (!users.is_a?(Array) || users.size < 1)
 
@@ -146,22 +150,23 @@ module CloudDB
       true
     end
 
-    # Creates a brand new user and associates it with the current Instance. Returns true if successful.
+    # Creates a brand new user and associates it with the current instance. Returns true if successful.
     #
     # Options:
-    # :name - Name of the user for the database(s). *required*
-    # :password - User password for database access. *required*
-    # :databases - An array of databases with at least one database. *required*
+    #   :name - Name of the user for the database(s). *required*
+    #   :password - User password for database access. *required*
+    #   :databases - An array of databases with at least one database. *required*
     def create_user(options={})
       new_users = Array.new
       new_users << options
       create_users new_users
     end
 
-
     # Enables the root user for the specified database instance and returns the root password.
     #
-    #    >> i.enable_root
+    # Example:
+    #   i.enable_root
+    #   => true
     def enable_root()
       response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/root", @dbmgmtport, @dbmgmtscheme, {})
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -172,7 +177,9 @@ module CloudDB
 
     # Returns true if root user is enabled for the specified database instance or false otherwise.
     #
-    #    >> i.root_enabled?
+    # Example:
+    #   i.root_enabled?
+    #   => true
     def root_enabled?()
       response = @connection.dbreq("GET", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/root", @dbmgmtport, @dbmgmtscheme, {})
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
@@ -180,10 +187,11 @@ module CloudDB
       return @root_enabled
     end
 
-    # Resize the memory of the instance.
+    # This operation changes the memory size of the instance, assuming a valid flavorRef is provided. Restarts MySQL in
+    # the process.
     #
     # Options:
-    # :flavor_ref - reference (href) to a flavor as specified in the response from the List Flavors API call. *required*
+    #   :flavor_ref - reference to a flavor as specified in the response from the List Flavors API call. *required*
     def resize(options={})
       body = Hash.new
       body[:resize] = Hash.new
@@ -195,10 +203,11 @@ module CloudDB
       true
     end
 
-    # Resize the volume of the instance.
+    # This operation supports resizing the attached volume for an instance. It supports only increasing the volume size
+    # and does not support decreasing the size. The volume size is in gigabytes (GB) and must be an integer.
     #
     # Options:
-    # :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
+    #   :size - specifies the volume size in gigabytes (GB). The value specified must be between 1 and 10. *required*
     def resize_volume(options={})
       body = Hash.new
       body[:resize] = Hash.new
@@ -213,6 +222,16 @@ module CloudDB
       true
     end
 
+    # The restart operation will restart only the MySQL Instance. Restarting MySQL will erase any dynamic configuration
+    # settings that you have made within MySQL.
+    def restart()
+      body = Hash.new
+      body[:restart] = Hash.new
+
+      response = @connection.dbreq("POST", @dbmgmthost, "#{@dbmgmtpath}/instances/#{CloudDB.escape(@id.to_s)}/action", @dbmgmtport, @dbmgmtscheme, {}, body.to_json)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      true
+    end
 
     # Deletes the current instance object.  Returns true if successful, raises an exception otherwise.
     def destroy!

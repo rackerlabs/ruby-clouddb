@@ -15,7 +15,8 @@ module CloudDB
       self
     end
 
-    # Deletes the current User object and removes it from the instance. Returns true if successful, raises an exception if not.
+    # Deletes the current User object and removes it from the instance. Returns true if successful, raises an
+    # exception if not.
     def destroy!
       response = @connection.dbreq("DELETE",@dbmgmthost,"#{@dbmgmtpath}/instances/#{CloudDB.escape(@instance.id.to_s)}/users/#{CloudDB.escape(@name.to_s)}",@dbmgmtport,@dbmgmtscheme)
       CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
