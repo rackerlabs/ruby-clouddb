@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.name        = "clouddb"
   s.version     = CloudDB::VERSION
   s.platform    = Gem::Platform::RUBY
-  s.authors     = %w("Jorge Miramontes", "H. Wade Minter")
+  s.authors     = %w("Jorge Miramontes" "H. Wade Minter")
   s.email       = %w(jorge.miramontes@rackspace.com minter@lunenburg.org)
   s.homepage    = "http://github.com/rackspace/ruby-clouddb"
   s.summary     = "Ruby API into the Rackspace Cloud Databases product"
