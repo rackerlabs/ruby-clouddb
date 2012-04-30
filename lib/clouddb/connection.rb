@@ -50,6 +50,30 @@ module CloudDB
       @authok
     end
 
+    # This operation lists information about all versions of the API.
+    #
+    # Example:
+    #   dbaas.list_api_versions
+    def list_api_versions()
+      response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}", dbmgmtport, dbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      versions = CloudDB.symbolize_keys(JSON.parse(response.body)["versions"])
+      return versions
+    end
+    alias :api_versions :list_api_versions
+
+    # Returns detailed information about the specified version of the API.
+    #
+    # Example:
+    #   dbaas.get_api_version_detail("v1.0")
+    def get_api_version_detail(version)
+      response = dbreq("GET", dbmgmthost, "#{dbmgmtpath}/#{CloudDB.escape(version.to_s)}", dbmgmtport, dbmgmtscheme)
+      CloudDB::Exception.raise_exception(response) unless response.code.to_s.match(/^20.$/)
+      version_detail = CloudDB.symbolize_keys(JSON.parse(response.body)["version"])
+      return version_detail
+    end
+    alias :api_version_detail :get_api_version_detail
+
     # Returns the list of available database instances.
     #
     # Information returned includes:
