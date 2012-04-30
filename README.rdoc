@@ -30,7 +30,7 @@ See the class definitions for documentation on specific methods and operations.
   require 'clouddb'
 
   # Authenticate to the Rackspace Cloud, and choose to manage databases in the Dallas/Ft. Worth datacenter
-  db = CloudDB::Connection.new(:username => "MY_USERNAME", :api_key => "MY_API_KEY", :region => :dfw)
+  dbaas = CloudDB::Connection.new(:username => "MY_USERNAME", :api_key => "MY_API_KEY", :region => :dfw)
 
 == Authors
 
