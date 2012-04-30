@@ -6,7 +6,7 @@ This is a Ruby interface into the Rackspace[http://rackspace.com/] {Cloud Databa
 
 == Installation
 
-This source is available on Github[http://github.com/rackspace/ruby-clouddb/] and the gem is available on RubyGems[http://rubygems.org/] (coming soon..).  To install it, do
+This source is available on Github[http://github.com/rackspace/ruby-clouddb/] and the gem is available on RubyGems[http://rubygems.org/].  To install it, do
 
   sudo gem install clouddb
   

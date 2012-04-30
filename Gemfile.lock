@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    clouddb (0.1.0)
+    clouddb (0.0.1)
       json
       typhoeus
 
