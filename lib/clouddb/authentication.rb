@@ -17,15 +17,15 @@ module CloudDB
       response = request.response
       headers = response.headers_hash
       if (response.code.to_s == "204")
-        connection.authtoken = headers["x-auth-token"]
-        user_id = headers["x-server-management-url"].match(/.*\/(\d+)$/)[1]
-        headers["x-server-management-url"] = "https://#{connection.region}.databases.api.rackspacecloud.com/v1.0/#{user_id}"
-        connection.dbmgmthost = URI.parse(headers["x-server-management-url"]).host
-        connection.dbmgmtpath = URI.parse(headers["x-server-management-url"]).path.chomp
+        connection.authtoken = headers["X-Auth-Token"]
+        user_id = headers["X-Server-Management-Url"].match(/.*\/(\d+)$/)[1]
+        headers["X-Server-Management-Url"] = "https://#{connection.region}.databases.api.rackspacecloud.com/v1.0/#{user_id}"
+        connection.dbmgmthost = URI.parse(headers["X-Server-Management-Url"]).host
+        connection.dbmgmtpath = URI.parse(headers["X-Server-Management-Url"]).path.chomp
         # Force the path into the v1.0 URL space
         connection.dbmgmtpath.sub!(/\/.*?\//, '/v1.0/')
-        connection.dbmgmtport = URI.parse(headers["x-server-management-url"]).port
-        connection.dbmgmtscheme = URI.parse(headers["x-server-management-url"]).scheme
+        connection.dbmgmtport = URI.parse(headers["X-Server-Management-Url"]).port
+        connection.dbmgmtscheme = URI.parse(headers["X-Server-Management-Url"]).scheme
         connection.authok = true
       else
         connection.authtoken = false
