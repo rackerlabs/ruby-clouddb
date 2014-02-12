@@ -11,6 +11,13 @@ Gem::Specification.new do |s|
   s.authors     = %w("Jorge Miramontes" "H. Wade Minter")
   s.email       = %w(jorge.miramontes@rackspace.com minter@lunenburg.org)
   s.homepage    = "http://github.com/rackspace/ruby-clouddb"
+  s.post_install_message = %Q{
+**** PLEASE NOTE **********************************************************************************************
+
+  #{s.name} has been deprecated. Please consider using fog (http://github.com/fog/fog) for all new projects.
+
+***************************************************************************************************************
+} if s.respond_to? :post_install_message
   s.summary     = "Ruby API into the Rackspace Cloud Databases product"
   s.description = "A Ruby API to manage the Rackspace Cloud Databases product"
  

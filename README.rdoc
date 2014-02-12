@@ -1,5 +1,9 @@
 = Rackspace Cloud Databases
 
+== Deprecation Notice
+
+This project is deprecated. New projects should use fog[https://github.com/fog/fog] instead.
+
 == Description
 
 This is a Ruby interface into the Rackspace[http://rackspace.com/] {Cloud Databases}[http://www.rackspace.com/blog/announcing-the-rackspace-mysql-cloud-database-private-beta/] service.
@@ -41,5 +45,3 @@ See the class definitions for documentation on specific methods and operations.
 
 See COPYING for license information.
 Copyright (c) 2012, Rackspace US, Inc.
-  
-  
